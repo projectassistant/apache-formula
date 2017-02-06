@@ -3,7 +3,7 @@
 {% set sitename = site.get('ServerName', id) %}
 
 {% set vals = {
-    'interface': site.get('interface', '*'),
+    'interfaces': site.get('interface', '*').split(),
     'port': site.get('port', '80'),
 
     'ServerName': sitename,
@@ -18,11 +18,12 @@
     'LogFormat': site.get('LogFormat', '"%h %l %u %t \\\"%r\\\" %>s %O"'),
     'CustomLog': site.get('CustomLog', '{0}/{1}-access.log'.format(map.logdir, sitename)),
     
+    'ProxyRequests': site.get('ProxyRequests', 'Off'),
     'ProxyPreserveHost': site.get('ProxyPreserveHost', 'On'),
     'ProxyRoute': site.get('ProxyRoute', {}),
 } %}
 
-<VirtualHost {{ vals.interface }}:{{ vals.port }}>
+<VirtualHost {%- for intf in vals.interfaces %} {{intf}}:{{ vals.port }}{% endfor -%}>
     ServerName {{ vals.ServerName }}
     {% if site.get('ServerAlias') != False %}ServerAlias {{ vals.ServerAlias }}{% endif %}
 
@@ -44,17 +45,18 @@
     SSLCertificateChainFile {{ site.SSLCertificateChainFile}}
     {%   endif %}
     {% endif %}
-
+    ProxyRequests {{ vals.ProxyRequests }}
     ProxyPreserveHost {{ vals.ProxyPreserveHost }}    
     {% for proxy, proxyargs in vals.ProxyRoute|dictsort|reverse %}
     {% set proxyvals = {
         'ProxyPassSource': proxyargs.get('ProxyPassSource', '/'),
         'ProxyPassTarget': proxyargs.get('ProxyPassTarget', 'https://{0}'.format(sitename)),
+        'ProxyPassTargetOptions': proxyargs.get('ProxyPassTargetOptions', ''),
         'ProxyPassReverseSource': proxyargs.get('ProxyPassReverseSource', '/'),
-        'ProxyPassReverseTarget': proxyargs.get('ProxyPassReverseTarget', site.get('ProxyPassTarget', 'https://{0}'.format(sitename))),
+        'ProxyPassReverseTarget': proxyargs.get('ProxyPassReverseTarget', proxyargs.get('ProxyPassTarget', 'https://{0}'.format(sitename))),
     } %}
     ######### {{proxy}} #########
-    ProxyPass               {{ proxyvals.ProxyPassSource }} {{ proxyvals.ProxyPassTarget }}
+    ProxyPass               {{ proxyvals.ProxyPassSource }} {{ proxyvals.ProxyPassTarget }} {{ proxyvals.ProxyPassTargetOptions }}
     ProxyPassReverse        {{ proxyvals.ProxyPassReverseSource }} {{ proxyvals.ProxyPassReverseTarget }}
     {% endfor %}
     {% if site.get('Formula_Append') %}

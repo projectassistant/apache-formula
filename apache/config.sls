@@ -7,11 +7,13 @@ include:
   file.managed:
     - template: jinja
     - source:
-      - salt://apache/files/{{ salt['grains.get']('os_family') }}/apache.config.jinja
+      - salt://apache/files/{{ salt['grains.get']('os_family') }}/apache-{{ apache.version }}.config.jinja
     - require:
       - pkg: apache
     - watch_in:
       - service: apache
+    - context:
+      apache: {{ apache }}
 
 {{ apache.vhostdir }}:
   file.directory:
@@ -25,11 +27,24 @@ include:
   file.managed:
     - template: jinja
     - source:
-      - salt://apache/files/Debian/envvars.jinja
+      - salt://apache/files/{{ salt['grains.get']('os_family') }}/envvars-{{ apache.version }}.jinja
     - require:
       - pkg: apache
     - watch_in:
       - service: apache
+
+{{ apache.portsfile }}:
+  file.managed:
+    - template: jinja
+    - source:
+      - salt://apache/files/{{ salt['grains.get']('os_family') }}/ports-{{ apache.version }}.conf.jinja
+    - require:
+      - pkg: apache
+    - watch_in:
+      - service: apache
+    - context:
+      apache: {{ apache }}
+
 {% endif %}
 
 {% if grains['os_family']=="RedHat" %}
@@ -39,4 +54,42 @@ include:
       - pkg: apache
     - watch_in:
       - service: apache
+{% endif %}
+
+{% if grains['os_family']=="Suse" %}
+/etc/apache2/sysconfig.d/global.conf:
+  file.managed:
+    - template: jinja
+    - source:
+      - salt://apache/files/{{ salt['grains.get']('os_family') }}/global.config.jinja
+    - require:
+      - pkg: apache
+    - watch_in:
+      - service: apache
+    - context:
+      apache: {{ apache }}
+{% endif %}
+
+{% if grains['os_family']=="FreeBSD" %}
+/usr/local/etc/{{ apache.service }}/envvars.d/by_salt.env:
+  file.managed:
+    - template: jinja
+    - source:
+      - salt://apache/files/{{ salt['grains.get']('os_family') }}/envvars-{{ apache.version }}.jinja
+    - require:
+      - pkg: apache
+    - watch_in:
+      - service: apache
+
+{{ apache.portsfile }}:
+  file.managed:
+    - template: jinja
+    - source:
+      - salt://apache/files/{{ salt['grains.get']('os_family') }}/ports-{{ apache.version }}.conf.jinja
+    - require:
+      - pkg: apache
+    - watch_in:
+      - service: apache
+    - context:
+      apache: {{ apache }}
 {% endif %}

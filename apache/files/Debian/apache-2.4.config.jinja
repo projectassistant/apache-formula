@@ -91,7 +91,7 @@ Timeout 300
 # KeepAlive: Whether or not to allow persistent connections (more than
 # one request per connection). Set to "Off" to deactivate.
 #
-KeepAlive On
+KeepAlive {{ salt['pillar.get']('apache:keepalive', 'On') }}
 
 #
 # MaxKeepAliveRequests: The maximum number of requests to allow
@@ -209,6 +209,10 @@ LogFormat "%{Referer}i -> %U" referer
 LogFormat "%{User-agent}i" agent
 {%- for log_format in salt['pillar.get']('apache:log_formats', []) %}
 LogFormat {{ log_format }}
+{%- endfor %}
+
+{%- for directive, dvalue in salt['pillar.get']('apache:global', {}).items() %}
+{{ directive }} {{ dvalue }}
 {%- endfor %}
 
 # Include of directories ignores editors' and dpkg's backup files,
